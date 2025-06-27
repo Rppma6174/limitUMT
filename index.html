@@ -485,6 +485,10 @@
                 width: 100%;
                 height: 160px;
             }
+            .html {
+                margin-left: auto;
+                margin-right: auto;
+            }
         }
         .btn-quiz {
             background: linear-gradient(135deg, #ff6b35, #ff8c5a);
@@ -496,6 +500,166 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(255, 107, 53, 0.4);
         }
+        .fullscreen-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    z-index: 10000;
+    display: none;
+}
+
+.fullscreen-container.active {
+    display: block;
+}
+
+.fullscreen-video {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.fullscreen-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 10001;
+}
+
+.fullscreen-btn {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.fullscreen-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Update video player untuk tombol fullscreen */
+.video-player {
+    position: relative;
+}
+
+.video-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-player:hover .video-controls {
+    opacity: 1;
+}
+
+/* Responsive fix untuk course completion notification */
+.course-completion-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(42, 42, 42, 0.95);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 400px;
+    width: 90%;
+}
+
+.course-completion-modal .completion-icon {
+    font-size: 50px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.course-completion-modal h3 {
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.course-completion-modal p {
+    margin-bottom: 20px;
+    color: #cccccc;
+}
+
+.course-completion-modal button {
+    background: linear-gradient(135deg, #ff6b35, #ff8c5a);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.course-completion-modal button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+}
+
+/* 3. Media query untuk responsive course completion modal */
+@media (max-width: 480px) {
+    .course-completion-modal {
+        width: 95% !important;
+        padding: 20px !important;
+        max-width: none;
+    }
+    
+    .course-completion-modal h3 {
+        font-size: 20px !important;
+    }
+    
+    .course-completion-modal .completion-icon {
+        font-size: 40px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .course-completion-modal p {
+        font-size: 14px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .course-completion-modal button {
+        padding: 10px 20px !important;
+        font-size: 14px !important;
+        width: 100%;
+    }
+}
+
+@media (max-width: 320px) {
+    .course-completion-modal {
+        padding: 15px !important;
+    }
+    
+    .course-completion-modal h3 {
+        font-size: 18px !important;
+    }
+    
+    .course-completion-modal .completion-icon {
+        font-size: 35px !important;
+    }
+    
+    .course-completion-modal p {
+        font-size: 13px !important;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -526,6 +690,20 @@
             <div class="video-section">
                 <div class="video-player" id="videoPlayer">
                     <div class="video-loading">Klik video di sidebar untuk memulai</div>
+                    <div class="video-controls">
+                        <button class="fullscreen-btn" onclick="toggleFullscreen()" id="fullscreenToggle" style="display: none;">
+                            ⛶ Fullscreen
+                        </button>
+                    </div>
+                </div>
+
+<!-- Fullscreen container -->
+                <div class="fullscreen-container" id="fullscreenContainer">
+                    <div class="fullscreen-controls">
+                        <button class="fullscreen-btn" onclick="exitFullscreen()">
+                            ✕ Keluar Fullscreen
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="video-info">
@@ -595,7 +773,7 @@
     </div>
     
     <script>
-// Data video pembelajaran
+
 const videoData = {
     'matematika-10': [
         {
@@ -616,6 +794,7 @@ const videoData = {
 let currentCourse = 'matematika-10';
 let currentVideoIndex = -1;
 let autoPlayTimer = null;
+let isFullscreen = false;
 
 // Fungsi untuk menyimpan progress ke localStorage
 function saveProgress() {
@@ -674,6 +853,57 @@ function initializePage() {
     renderVideoList();
     updateProgress();
     resetVideoPlayer();
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+}
+
+function handleFullscreenChange() {
+    isFullscreen = !!(document.fullscreenElement || 
+                     document.webkitFullscreenElement || 
+                     document.mozFullScreenElement || 
+                     document.msFullscreenElement);
+    
+    const videoContainer = document.getElementById('videoPlayer');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    
+    if (isFullscreen) {
+        videoContainer.classList.add('fullscreen-active');
+        if (fullscreenBtn) fullscreenBtn.innerHTML = '⊡ Exit Fullscreen';
+    } else {
+        videoContainer.classList.remove('fullscreen-active');
+        if (fullscreenBtn) fullscreenBtn.innerHTML = '⛶ Fullscreen';
+    }
+}
+
+function toggleFullscreen() {
+    const videoContainer = document.getElementById('videoPlayer');
+    
+    if (!isFullscreen) {
+        // Enter fullscreen
+        if (videoContainer.requestFullscreen) {
+            videoContainer.requestFullscreen();
+        } else if (videoContainer.webkitRequestFullscreen) {
+            videoContainer.webkitRequestFullscreen();
+        } else if (videoContainer.mozRequestFullScreen) {
+            videoContainer.mozRequestFullScreen();
+        } else if (videoContainer.msRequestFullscreen) {
+            videoContainer.msRequestFullscreen();
+        }
+    } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
 }
 
 // Render daftar video
@@ -734,13 +964,54 @@ async function loadVideo(video) {
     // Load video
     setTimeout(() => {
         videoPlayer.innerHTML = `
-            <iframe class="youtube-embed" 
-                    src="${embedUrl}" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                    allowfullscreen
-                    id="currentVideo">
-            </iframe>
+            <div class="video-wrapper" style="position: relative; width: 100%; height: 100%;">
+                <iframe class="youtube-embed" 
+                        src="${embedUrl}" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" 
+                        allowfullscreen
+                        webkitallowfullscreen
+                        mozallowfullscreen
+                        id="currentVideo"
+                        style="width: 100%; height: 100%; border: none;">
+                </iframe>
+                <div class="video-controls" style="
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    z-index: 1000;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                ">
+                    <button id="fullscreenBtn" onclick="toggleFullscreen()" style="
+                        background: rgba(0, 0, 0, 0.7);
+                        color: white;
+                        border: none;
+                        padding: 8px 12px;
+                        border-radius: 20px;
+                        cursor: pointer;
+                        font-size: 12px;
+                        backdrop-filter: blur(10px);
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.background='rgba(0, 0, 0, 0.9)'" 
+                       onmouseout="this.style.background='rgba(0, 0, 0, 0.7)'">
+                        ⛶ Fullscreen
+                    </button>
+                </div>
+            </div>
         `;
+        
+        // Show controls on hover
+        const videoWrapper = videoPlayer.querySelector('.video-wrapper');
+        const controls = videoPlayer.querySelector('.video-controls');
+        
+        videoWrapper.addEventListener('mouseenter', () => {
+            controls.style.opacity = '1';
+        });
+        
+        videoWrapper.addEventListener('mouseleave', () => {
+            controls.style.opacity = '0';
+        });
+        
     }, 500);
     
     // Load video stats
@@ -1115,38 +1386,13 @@ function showCompletionNotification(videoTitle) {
 // Show course completion
 function showCourseCompletionNotification() {
     const notification = document.createElement('div');
+    notification.className = 'course-completion-modal';
     notification.innerHTML = `
-        <div style="
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(42, 42, 42, 0.95);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            z-index: 10000;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 400px;
-            width: 90%;
-        ">
-            <div style="font-size: 50px; margin-bottom: 20px;">🎓</div>
-            <h3 style="margin-bottom: 15px; font-size: 24px;">Selamat!</h3>
-            <p style="margin-bottom: 20px; color: #cccccc;">
-                Anda telah menyelesaikan semua video dalam kursus ini!
-            </p>
-            <button onclick="this.parentElement.parentElement.remove()" style="
-                background: linear-gradient(135deg, #ff6b35, #ff8c5a);
-                color: white;
-                border: none;
-                padding: 12px 25px;
-                border-radius: 25px;
-                cursor: pointer;
-                font-weight: 600;
-            ">
+        <div class="course-completion-modal">
+            <div class="completion-icon">🎓</div>
+            <h3>Selamat!</h3>
+            <p>Anda telah menyelesaikan semua video dalam kursus ini!</p>
+            <button onclick="this.parentElement.parentElement.remove()">
                 Tutup
             </button>
         </div>
@@ -1172,6 +1418,7 @@ document.addEventListener('click', function(event) {
     }
 });
 
+
 // Add CSS animations
 const style = document.createElement('style');
 style.textContent = `
@@ -1196,6 +1443,34 @@ style.textContent = `
             opacity: 0;
         }
     }
+    
+    /* Fullscreen styles */
+    #videoPlayer.fullscreen-active {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 999999 !important;
+        background: black !important;
+    }
+    
+    #videoPlayer.fullscreen-active .video-wrapper {
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    #videoPlayer.fullscreen-active .youtube-embed {
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    .video-controls {
+        transition: opacity 0.3s ease !important;
+    }
+    
+    .video-wrapper:hover .video-controls {
+        opacity: 1 !important;
 `;
 document.head.appendChild(style);
 
@@ -1207,6 +1482,50 @@ document.addEventListener('DOMContentLoaded', function() {
     const videos = videoData[currentCourse] || [];
     if (videos.length > 0) {
         console.log('Ready to start learning with', videos.length, 'videos');
+    }
+});
+
+// Handle keyboard shortcuts
+document.addEventListener('keydown', function(event) {
+    // F untuk fullscreen toggle
+    if (event.code === 'KeyF' && currentVideoIndex >= 0) {
+        event.preventDefault();
+        toggleFullscreen();
+    }
+    
+    // Escape untuk exit fullscreen
+    if (event.code === 'Escape' && isFullscreen) {
+        event.preventDefault();
+        toggleFullscreen();
+    }
+    
+    // Space atau Enter untuk mark complete
+    if ((event.code === 'Space' || event.code === 'Enter') && currentVideoIndex >= 0) {
+        const completeBtn = document.getElementById('completeBtn');
+        if (!completeBtn.disabled && !isFullscreen) {
+            event.preventDefault();
+            markAsComplete();
+        }
+    }
+    
+    // Arrow keys untuk navigasi (hanya jika tidak fullscreen)
+    if (!isFullscreen) {
+        if (event.code === 'ArrowDown' || event.code === 'ArrowRight') {
+            event.preventDefault();
+            const videos = videoData[currentCourse] || [];
+            const nextIndex = currentVideoIndex + 1;
+            if (nextIndex < videos.length) {
+                selectVideo(nextIndex);
+            }
+        }
+        
+        if (event.code === 'ArrowUp' || event.code === 'ArrowLeft') {
+            event.preventDefault();
+            const prevIndex = currentVideoIndex - 1;
+            if (prevIndex >= 0) {
+                selectVideo(prevIndex);
+            }
+        }
     }
 });
 
