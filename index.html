@@ -485,6 +485,10 @@
                 width: 100%;
                 height: 160px;
             }
+            .html {
+                margin-left: auto;
+                margin-right: auto;
+            }
         }
         .btn-quiz {
             background: linear-gradient(135deg, #ff6b35, #ff8c5a);
@@ -496,6 +500,186 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(255, 107, 53, 0.4);
         }
+        .fullscreen-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    z-index: 10000;
+    display: none;
+}
+
+.fullscreen-container.active {
+    display: block;
+}
+
+.fullscreen-video {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.fullscreen-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 10001;
+}
+
+.fullscreen-btn {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.fullscreen-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Update video player untuk tombol fullscreen */
+.video-player {
+    position: relative;
+}
+
+.video-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-player:hover .video-controls {
+    opacity: 1;
+}
+
+#videoPlayer.fullscreen-active {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 999999 !important;
+    background: black !important;
+}
+
+#videoPlayer.fullscreen-active .video-wrapper {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+#videoPlayer.fullscreen-active .youtube-embed {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Responsive fix untuk course completion notification */
+.course-completion-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(42, 42, 42, 0.95);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 400px;
+    width: 90%;
+}
+
+.course-completion-modal .completion-icon {
+    font-size: 50px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.course-completion-modal h3 {
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.course-completion-modal p {
+    margin-bottom: 20px;
+    color: #cccccc;
+}
+
+.course-completion-modal button {
+    background: linear-gradient(135deg, #ff6b35, #ff8c5a);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.course-completion-modal button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+}
+
+/* 3. Media query untuk responsive course completion modal */
+@media (max-width: 480px) {
+    .course-completion-modal {
+        width: 95% !important;
+        padding: 20px !important;
+        max-width: none;
+    }
+    
+    .course-completion-modal h3 {
+        font-size: 20px !important;
+    }
+    
+    .course-completion-modal .completion-icon {
+        font-size: 40px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .course-completion-modal p {
+        font-size: 14px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .course-completion-modal button {
+        padding: 10px 20px !important;
+        font-size: 14px !important;
+        width: 100%;
+    }
+}
+
+@media (max-width: 320px) {
+    .course-completion-modal {
+        padding: 15px !important;
+    }
+    
+    .course-completion-modal h3 {
+        font-size: 18px !important;
+    }
+    
+    .course-completion-modal .completion-icon {
+        font-size: 35px !important;
+    }
+    
+    .course-completion-modal p {
+        font-size: 13px !important;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -534,7 +718,14 @@
                 </div>
 
 <!-- Fullscreen container -->
-
+                <div class="fullscreen-container" id="fullscreenContainer">
+                    <div class="fullscreen-controls">
+                        <button class="fullscreen-btn" onclick="exitFullscreen()">
+                            ✕ Keluar Fullscreen
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="video-info">
                     <h2 class="video-title" id="videoTitle">Pilih video untuk memulai pembelajaran</h2>
                     
@@ -602,45 +793,21 @@
     </div>
     
     <script>
-// Data video pembelajaran
+
 const videoData = {
     'matematika-10': [
         {
             id: 'limit-dasar',
-            title: 'Nilai Mutlak - Definisi',
-            youtubeId: 'zwth9824dhU?si=l-AjS2KOJZRx74Rs',
-            duration: '00:53',
-            description: 'Video ini membahas pemahaman dasar tentang definisi limit. Materi disajikan untuk membangun pemahaman yang kuat tentang nilai mutlak secara konseptual dan visual.',
-            tags: ['Matematika', 'Nilai Mutlak', 'Dasar'],
+            title: 'Limit - Esensi',
+            youtubeId: 'mcY7-GYIpHA?si=gJ53gH7Vva0I2_FJ',
+            duration: '08:00',
+            description: 'Video ini membahas pemahaman dasar tentang limit fungsi, mulai dari makna limit, bagaimana fungsi mendekati suatu titik, konsep kekontinuan, hingga representasi matematika dari kedekatan x ke a dan f(x) ke b. Materi disajikan untuk membangun pemahaman yang kuat tentang limit secara konseptual dan visual.',
+            tags: ['Matematika', 'Kalkulus', 'Limit', 'Dasar'],
             pdfUrl: '/notes/limit-dasar.pdf',
             completed: false,
-            thumbnail:'Thumb Definisi Nilai Mutlak.png',
-            quizUrl: 'https://forms.gle/o7RuibY5TTRbFur99',
+            thumbnail:'Esensi Limit.png',
+            quizUrl: '#',
         },
-        {
-            id: 'limit-dasar',
-            title: 'Nilai Mutlak - Representasi Geometri',
-            youtubeId: 'MxhGHR0zuuo?si=1WJ8LiXWZfesvzEH',
-            duration: '03:32',
-            description: 'Video ini membahas pemahaman dasar tentang representasi geometri dari nilai mutlak. Materi disajikan untuk membangun pemahaman yang kuat tentang nilai mutlak secara konseptual dan visual.',
-            tags: ['Matematika', 'Nilai Mutlak', 'Dasar'],
-            pdfUrl: '/notes/limit-dasar.pdf',
-            completed: false,
-            thumbnail:'Thumb Representasi geometri dari nilai mutlak.png',
-            quizUrl: 'https://forms.gle/AuWMFTjCp6xMYpgF9',
-        },
-        {
-            id: 'limit-dasar',
-            title: 'Nilai Mutlak - Sifat - Sifat Dasar',
-            youtubeId: 'CVrjAQdhFFg?si=KQcOiD1yznc-jbqt',
-            duration: '01:26',
-            description: 'Video ini membahas pemahaman dasar tentang sifat sifat dasar nilai mutlak. Materi disajikan untuk membangun pemahaman yang kuat tentang nilai mutlak secara konseptual dan visual.',
-            tags: ['Matematika', 'Nilai Mutlak', 'Dasar'],
-            pdfUrl: '/notes/limit-dasar.pdf',
-            completed: false,
-            thumbnail:'sifat dasar nilai mutlak.png',
-            quizUrl: 'https://forms.gle/oCv3anCAakv31E9w8',
-        }
     ]
 };
 
@@ -714,28 +881,31 @@ function initializePage() {
 }
 
 function handleFullscreenChange() {
-    isFullscreen = !!(document.fullscreenElement || 
-                     document.webkitFullscreenElement || 
-                     document.mozFullScreenElement || 
+    isFullscreen = !!(document.fullscreenElement ||
+                     document.webkitFullscreenElement ||
+                     document.mozFullScreenElement ||
                      document.msFullscreenElement);
-    
+
+    const fullscreenBtn = document.getElementById('fullscreenToggle') || document.getElementById('fullscreenBtn');
+
+    if (fullscreenBtn) {
+        fullscreenBtn.textContent = isFullscreen ? '✕ Keluar Fullscreen' : '⛶ Fullscreen';
+    }
+
     const videoContainer = document.getElementById('videoPlayer');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    
     if (isFullscreen) {
         videoContainer.classList.add('fullscreen-active');
-        if (fullscreenBtn) fullscreenBtn.innerHTML = '⊡ Exit Fullscreen';
     } else {
         videoContainer.classList.remove('fullscreen-active');
-        if (fullscreenBtn) fullscreenBtn.innerHTML = '⛶ Fullscreen';
     }
 }
 
 function toggleFullscreen() {
     const videoContainer = document.getElementById('videoPlayer');
-    
+    const iframe = videoContainer.querySelector('iframe');
+
     if (!isFullscreen) {
-        // Enter fullscreen
+        // Masuk ke fullscreen
         if (videoContainer.requestFullscreen) {
             videoContainer.requestFullscreen();
         } else if (videoContainer.webkitRequestFullscreen) {
@@ -746,7 +916,7 @@ function toggleFullscreen() {
             videoContainer.msRequestFullscreen();
         }
     } else {
-        // Exit fullscreen
+        // Keluar dari fullscreen
         if (document.exitFullscreen) {
             document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {
@@ -757,6 +927,8 @@ function toggleFullscreen() {
             document.msExitFullscreen();
         }
     }
+
+    isFullscreen = !isFullscreen;
 }
 
 // Render daftar video
